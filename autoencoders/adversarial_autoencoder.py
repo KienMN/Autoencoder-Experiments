@@ -5,7 +5,16 @@ import time
 from keras.callbacks import CallbackList
 
 class AdversarialAutoencoder(BaseAutoencoder):
-  def __init__(self, input_dims, latent_dim, hidden_dim=1000, alpha=0.3, drop_rate=0.5, ae_loss_weight=1.0, gen_loss_weight=1.0, dc_loss_weight=1.0):
+  def __init__(self,
+              input_dims,
+              latent_dim,
+              hidden_dim=1000,
+              alpha=0.3,
+              drop_rate=0.5,
+              ae_loss_weight=1.0,
+              gen_loss_weight=1.0,
+              dc_loss_weight=1.0):
+
     super(AdversarialAutoencoder, self).__init__(input_dims, latent_dim)
     
     self.hidden_dim = hidden_dim
@@ -184,3 +193,88 @@ class AdversarialAutoencoder(BaseAutoencoder):
       epoch_logs['gen_loss'] = epoch_gen_loss_avg.result().numpy()
 
       callbacks.on_epoch_end(epoch, logs=epoch_logs)
+
+class AdversarialAutoencoder2(AdversarialAutoencoder):
+  def __init__(self,
+              input_dims,
+              latent_dim,
+              hidden_dim=1000,
+              alpha=0.3,
+              drop_rate=0.5,
+              ae_loss_weight=1.0,
+              gen_loss_weight=1.0,
+              dc_loss_weight=1.0):
+
+    super(AdversarialAutoencoder2, self).__init__(input_dims=input_dims,
+                                                  latent_dim=latent_dim,
+                                                  hidden_dim=hidden_dim,
+                                                  alpha=alpha,
+                                                  drop_rate=drop_rate,
+                                                  ae_loss_weight=ae_loss_weight,
+                                                  gen_loss_weight=gen_loss_weight,
+                                                  dc_loss_weight=dc_loss_weight)
+
+    self.ae_optimizer = tf.keras.optimizers.Adam(1e-4)
+    self.dc_optimizer = tf.keras.optimizers.Adam(1e-4)
+    self.gen_optimizer = tf.keras.optimizers.Adam(1e-4)
+
+  def fit(self,
+          train_dataset,
+          test_dataset=None,
+          batch_size=32,
+          epochs=1,
+          callbacks=None):
+
+    epoch_ae_loss_avg = tf.metrics.Mean()
+    epoch_dc_loss_avg = tf.metrics.Mean()
+    epoch_dc_acc_avg = tf.metrics.Mean()
+    epoch_gen_loss_avg = tf.metrics.Mean()
+
+    train_reconstruction_loss = tf.keras.metrics.Mean()
+    test_reconstruction_loss = tf.keras.metrics.Mean()
+
+    train_dataset = self._check_tf_dataset_instance(train_dataset, batch_size=batch_size)
+
+    callbacks = CallbackList(callbacks)
+    callback_model = self._get_callback_model()
+    callbacks.set_model(callback_model)
+
+    for epoch in range(1, epochs + 1):  
+      callbacks.on_epoch_begin(epoch)
+      epoch_logs = {}
+
+      for x_train in train_dataset:
+        ae_loss, dc_loss, dc_acc, gen_loss = self.train_step(x_train)
+
+        epoch_ae_loss_avg(ae_loss)
+        epoch_dc_loss_avg(dc_loss)
+        epoch_dc_acc_avg(dc_acc)
+        epoch_gen_loss_avg(gen_loss)
+
+        train_reconstruction_loss(self.compute_reconstruction_error(x_train))
+
+      epoch_logs['ae_loss'] = epoch_ae_loss_avg.result().numpy()
+      epoch_logs['dc_loss'] = epoch_dc_loss_avg.result().numpy()
+      epoch_logs['dc_acc'] = epoch_dc_acc_avg.result().numpy()
+      epoch_logs['gen_loss'] = epoch_gen_loss_avg.result().numpy()
+      epoch_logs['train_reconstruction_error'] = train_reconstruction_loss.result().numpy()
+      epoch_ae_loss_avg.reset_states()
+      epoch_dc_loss_avg.reset_states()
+      epoch_dc_acc_avg.reset_states()
+      epoch_gen_loss_avg.reset_states()
+      train_reconstruction_loss.reset_states()
+
+      if test_dataset is not None:
+        test_dataset = self._check_tf_dataset_instance(test_dataset, batch_size=batch_size)
+        for x_test in test_dataset:
+          test_reconstruction_loss(self.compute_reconstruction_error(x_test))
+        
+        epoch_logs['test_reconstruction_error'] = test_reconstruction_loss.result().numpy()
+        test_reconstruction_loss.reset_states()
+
+      callbacks.on_epoch_end(epoch, logs=epoch_logs)
+
+  def reconstruct(self, x):
+    x_encoded = self.encoder_model(x, training=False)
+    x_decoded = self.decoder_model(x_encoded, training=False)
+    return x_decoded

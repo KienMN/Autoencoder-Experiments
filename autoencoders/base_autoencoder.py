@@ -31,7 +31,7 @@ class BaseAutoencoder(tf.keras.Model):
     # gradients = [gradient if gradient is not None else tf.zeros_like(var) for var, gradient in zip(self.trainable_variables, gradients)]
     optimizer.apply_gradients(zip(gradients, self.trainable_variables))
 
-  def _check_tf_dataset_instance(self, x, batch_size=None):
+  def _check_tf_dataset_instance(self, x, batch_size=32):
     if not isinstance(x, tf.data.Dataset):
       if isinstance(x, np.ndarray):
         x = tf.data.Dataset.from_tensor_slices(x).shuffle(x.shape[0]).batch(batch_size)
