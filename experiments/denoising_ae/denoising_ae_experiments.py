@@ -9,6 +9,7 @@ from autoencoders.ae_callbacks import SaveLossesCallback, LogCallback, Reconstru
 
 parser = ArgumentParser()
 parser.add_argument('-d', '--dataset', type=str, choices=['mnist', 'fashion_mnist', 'cifar10'])
+parser.add_argument('-c', '--corruption_rate', type=float, default=0.2)
 
 args = parser.parse_args()
 
@@ -26,11 +27,11 @@ if args.dataset == 'mnist':
   epochs = 30
   min_latent_dim = 2
   max_latent_dim = 32
-  corruption_proportion = 0.1
+  corruption_proportion = args.corruption_rate
 
   train_dataset = tf.data.Dataset.from_tensor_slices(train_images).shuffle(60000).batch(batch_size)
   test_dataset = tf.data.Dataset.from_tensor_slices(test_images).batch(batch_size)
-  base_logdir = 'mnist_denoising_ae'
+  base_logdir = 'mnist_denoising_ae_prop_{}'.format(corruption_proportion)
 
 elif args.dataset == 'fashion_mnist':
   # FASHION MNIST Dataset
@@ -46,11 +47,11 @@ elif args.dataset == 'fashion_mnist':
   epochs = 30
   min_latent_dim = 2
   max_latent_dim = 50
-  corruption_proportion = 0.1
+  corruption_proportion = args.corruption_rate
 
   train_dataset = tf.data.Dataset.from_tensor_slices(train_images).shuffle(60000).batch(batch_size)
   test_dataset = tf.data.Dataset.from_tensor_slices(test_images).batch(batch_size)
-  base_logdir = 'fashion_mnist_denoising_ae'
+  base_logdir = 'fashion_mnist_denoising_ae_prop_{}'.format(corruption_proportion)
 
 elif args.dataset == 'cifar10':
   # CIFAR10 Dataset
@@ -68,11 +69,11 @@ elif args.dataset == 'cifar10':
   epochs = 30
   min_latent_dim = 2
   max_latent_dim = 100
-  corruption_proportion = 0.2
+  corruption_proportion = args.corruption_rate
 
   train_dataset = tf.data.Dataset.from_tensor_slices(train_images).shuffle(50000).batch(batch_size)
   test_dataset = tf.data.Dataset.from_tensor_slices(test_images).batch(batch_size)
-  base_logdir = 'cifar10_denoising_ae'
+  base_logdir = 'cifar10_denoising_ae_prop_{}'.format(corruption_proportion)
 
 acc_logdir = base_logdir + '/logs/accuracy'
 train_mse_logdir = base_logdir + '/logs/mse/train'
