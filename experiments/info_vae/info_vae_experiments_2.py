@@ -3,6 +3,8 @@ from autoencoders.ae_callbacks import SaveLossesCallback, LogCallback, Reconstru
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
 import time
 import numpy as np
 from argparse import ArgumentParser
@@ -23,9 +25,9 @@ if args.dataset == 'mnist':
 
   batch_size = 200
   train_buffer_size = 60000
-  epochs = 3
+  epochs = 0
   min_latent_dim = 2
-  max_latent_dim = 32
+  max_latent_dim = 3
 
   base_logdir = 'mnist_info_vae'
 
@@ -70,7 +72,9 @@ elif args.dataset == 'cifar10':
 acc_logdir = base_logdir + '/logs/accuracy'
 train_mse_logdir = base_logdir + '/logs/mse/train'
 test_mse_logdir = base_logdir + '/logs/mse/test'
-acc_writer = tf.summary.create_file_writer(acc_logdir)
+acc_writer_1 = tf.summary.create_file_writer(acc_logdir + '/gaussian_nb')
+acc_writer_2 = tf.summary.create_file_writer(acc_logdir + '/svm')
+acc_writer_3 = tf.summary.create_file_writer(acc_logdir + '/random_forest')
 train_mse_writer = tf.summary.create_file_writer(train_mse_logdir)
 test_mse_writer = tf.summary.create_file_writer(test_mse_logdir)
 
@@ -126,13 +130,35 @@ for latent_dim in range(min_latent_dim, max_latent_dim+1):
   X_test = X_test[1:]
   y_train = y_train[1:]
   y_test = y_test[1:]
-
-  classifier = GaussianNB()
-  classifier.fit(X_train, y_train)
-  acc = classifier.score(X_test, y_test)
   
-  with acc_writer.as_default():
-    tf.summary.scalar('Accuracy', acc, step=latent_dim)
+  ae_end_time = time.time()
+
+  classifier_1 = GaussianNB()
+  classifier_1.fit(X_train, y_train)
+  acc1 = classifier_1.score(X_test, y_test)
+
+  classifier_1_time = time.time()
+
+  classifier_2 = SVC(gamma='scale')
+  classifier_2.fit(X_train, y_train)
+  acc2 = classifier_2.score(X_test, y_test)
+
+  classifier_2_time = time.time()
+
+  classifier_3 = RandomForestClassifier(n_estimators=100)
+  classifier_3.fit(X_train, y_train)
+  acc3 = classifier_3.score(X_test, y_test)
+  
+  classifier_3_time = time.time()
+
+  with acc_writer_1.as_default():
+    tf.summary.scalar('Accuracy', acc1, step=latent_dim)
+  
+  with acc_writer_2.as_default():  
+    tf.summary.scalar('Accuracy', acc2, step=latent_dim)
+
+  with acc_writer_3.as_default():  
+    tf.summary.scalar('Accuracy', acc3, step=latent_dim)
 
   with train_mse_writer.as_default():
     tf.summary.scalar('Train MSE', train_mse.result().numpy(), step=latent_dim)
@@ -144,4 +170,10 @@ for latent_dim in range(min_latent_dim, max_latent_dim+1):
   test_mse.reset_states()
 
   end_time = time.time()
-  print('Latent dim: {}, Time: {}, Accuracy: {}'.format(latent_dim, end_time - start_time, acc))
+  print('Latent dim: {}, AE Time: {}, NB time: {}, SVM time: {}, Forest time: {}, Accuracy: {}'.format(
+    latent_dim,
+    ae_end_time - start_time,
+    classifier_1_time - ae_end_time,
+    classifier_2_time - classifier_1_time,
+    classifier_3_time - classifier_2_time,
+    [acc1, acc2, acc3]))
