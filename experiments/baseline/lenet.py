@@ -126,4 +126,4 @@ for d in ['mnist', 'fashion_mnist', 'cifar']:
         'n_examples': n_examples,
         'accuracy': test_accuracy.result().numpy(),
         'time_elapsed': time_elapsed,
-        'prediction_time': prediction_time.result()})
+        'prediction_time': prediction_time.result().numpy()})
