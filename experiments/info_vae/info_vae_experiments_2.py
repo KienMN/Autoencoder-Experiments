@@ -25,9 +25,9 @@ if args.dataset == 'mnist':
 
   batch_size = 200
   train_buffer_size = 60000
-  epochs = 0
-  min_latent_dim = 2
-  max_latent_dim = 3
+  epochs = 30
+  min_latent_dim = 5
+  max_latent_dim = 15
 
   base_logdir = 'mnist_info_vae'
 
@@ -43,9 +43,9 @@ elif args.dataset == 'fashion_mnist':
 
   batch_size = 200
   train_buffer_size = 60000
-  epochs = 3
-  min_latent_dim = 2
-  max_latent_dim = 32
+  epochs = 30
+  min_latent_dim = 5
+  max_latent_dim = 20
 
   base_logdir = 'fashion_mnist_info_vae'
 
@@ -63,27 +63,35 @@ elif args.dataset == 'cifar10':
 
   batch_size = 200
   train_buffer_size = 50000
-  epochs = 3
-  min_latent_dim = 2
-  max_latent_dim = 32
+  epochs = 30
+  min_latent_dim = 15
+  max_latent_dim = 30
 
   base_logdir = 'cifar10__info_vae'
 
 acc_logdir = base_logdir + '/logs/accuracy'
 train_mse_logdir = base_logdir + '/logs/mse/train'
 test_mse_logdir = base_logdir + '/logs/mse/test'
-acc_writer_1 = tf.summary.create_file_writer(acc_logdir + '/gaussian_nb')
-acc_writer_2 = tf.summary.create_file_writer(acc_logdir + '/svm')
-acc_writer_3 = tf.summary.create_file_writer(acc_logdir + '/random_forest')
 train_mse_writer = tf.summary.create_file_writer(train_mse_logdir)
 test_mse_writer = tf.summary.create_file_writer(test_mse_logdir)
 
+classifiers = [
+  GaussianNB(),
+  SVC(gamma='scale'),
+  RandomForestClassifier(n_estimators=100)]
+
+classifier_names = [
+  'gaussian_nb',
+  'svm',
+  'random_forest']
+
+acc_writer_files = [tf.summary.create_file_writer(acc_logdir + '/{}'.format(classifier_name)) for classifier_name in classifier_names]
 
 train_mse = tf.keras.metrics.Mean()
 test_mse = tf.keras.metrics.Mean()
 
 for latent_dim in range(min_latent_dim, max_latent_dim+1):
-  start_time = time.time()
+  
   if args.dataset == 'mnist' or args.dataset == 'fashion_mnist':
     model = MnistInfoVariationalAutoencoder(input_dims=input_dims, latent_dim=latent_dim)
   elif args.dataset == 'cifar10':
@@ -91,7 +99,8 @@ for latent_dim in range(min_latent_dim, max_latent_dim+1):
 
   train_dataset = tf.data.Dataset.from_tensor_slices(train_images).shuffle(train_buffer_size).batch(batch_size)
   test_dataset = tf.data.Dataset.from_tensor_slices(test_images).batch(batch_size)
-
+  
+  start_time = time.time()
   model.fit(train_dataset,
             test_dataset,
             batch_size=batch_size,
@@ -100,7 +109,7 @@ for latent_dim in range(min_latent_dim, max_latent_dim+1):
             callbacks=[SaveLossesCallback(logdir=base_logdir+'/logs/info_vae_{}/'.format(str(latent_dim))),
                       ReconstructionErrorCallback(logdir=base_logdir+'/logs/info_vae_{}/'.format(str(latent_dim)))]
             )
-  
+  end_time = time.time()
   model.save_weights(base_logdir+'/weights/info_vae_{}.ckpt'.format(str(latent_dim)))
 
   # Classification
@@ -130,35 +139,15 @@ for latent_dim in range(min_latent_dim, max_latent_dim+1):
   X_test = X_test[1:]
   y_train = y_train[1:]
   y_test = y_test[1:]
-  
-  ae_end_time = time.time()
 
-  classifier_1 = GaussianNB()
-  classifier_1.fit(X_train, y_train)
-  acc1 = classifier_1.score(X_test, y_test)
-
-  classifier_1_time = time.time()
-
-  classifier_2 = SVC(gamma='scale')
-  classifier_2.fit(X_train, y_train)
-  acc2 = classifier_2.score(X_test, y_test)
-
-  classifier_2_time = time.time()
-
-  classifier_3 = RandomForestClassifier(n_estimators=100)
-  classifier_3.fit(X_train, y_train)
-  acc3 = classifier_3.score(X_test, y_test)
-  
-  classifier_3_time = time.time()
-
-  with acc_writer_1.as_default():
-    tf.summary.scalar('Accuracy', acc1, step=latent_dim)
-  
-  with acc_writer_2.as_default():  
-    tf.summary.scalar('Accuracy', acc2, step=latent_dim)
-
-  with acc_writer_3.as_default():  
-    tf.summary.scalar('Accuracy', acc3, step=latent_dim)
+  for classifier, acc_writer_file in zip(classifiers, acc_writer_files):
+    classifier_start_time = time.time()
+    classifier.fit(X_train, train_labels)
+    acc = classifier.score(X_test, test_labels)
+    classifier_end_time = time.time()
+    with acc_writer_file.as_default():
+      tf.summary.scalar('Accuracy', acc, step=latent_dim)
+      tf.summary.scalar('Time elapsed', classifier_end_time - classifier_start_time, step=latent_dim)
 
   with train_mse_writer.as_default():
     tf.summary.scalar('Train MSE', train_mse.result().numpy(), step=latent_dim)
@@ -168,12 +157,5 @@ for latent_dim in range(min_latent_dim, max_latent_dim+1):
   
   train_mse.reset_states()
   test_mse.reset_states()
-
-  end_time = time.time()
-  print('Latent dim: {}, AE Time: {}, NB time: {}, SVM time: {}, Forest time: {}, Accuracy: {}'.format(
-    latent_dim,
-    ae_end_time - start_time,
-    classifier_1_time - ae_end_time,
-    classifier_2_time - classifier_1_time,
-    classifier_3_time - classifier_2_time,
-    [acc1, acc2, acc3]))
+  
+  print('Latent dim: {}, Training Time: {}'.format(latent_dim, end_time - start_time))

@@ -12,13 +12,13 @@ if not os.path.exists(path):
   os.mkdir(path)
 
 classifiers = [
-  RandomForestClassifier(n_estimators=100),
+  GaussianNB(),
   SVC(gamma='scale'),
-  GaussianNB()]
+  RandomForestClassifier(n_estimators=100)]
 classifier_name = [
-  'random_forest',
+  'gaussian_nb',
   'svm',
-  'gaussian_nb']
+  'random_forest']
 
 for d in ['mnist', 'fashion_mnist', 'cifar']:
   if d == 'mnist':
