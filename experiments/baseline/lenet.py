@@ -39,21 +39,21 @@ for d in ['mnist', 'fashion_mnist', 'cifar']:
     (train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.mnist.load_data()
     train_images = train_images.reshape([-1, 28, 28, 1]).astype('float32')
     test_images = test_images.reshape([-1, 28, 28, 1]).astype('float32')
-    EPOCHS = 1
+    EPOCHS = 15
     BATCH_SIZE = 256
     TRAINING_EXAMPLES = [5000, 10000, 30000, 60000]
   elif d == 'fashion_mnist':
     (train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.fashion_mnist.load_data()
     train_images = train_images.reshape([-1, 28, 28, 1]).astype('float32')
     test_images = test_images.reshape([-1, 28, 28, 1]).astype('float32')
-    EPOCHS = 1
+    EPOCHS = 15
     BATCH_SIZE = 256
     TRAINING_EXAMPLES = [5000, 10000, 30000, 60000]
   elif d == 'cifar':
     (train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.cifar10.load_data()
     train_images = train_images.reshape([-1, 32, 32, 3]).astype('float32')
     test_images = test_images.reshape([-1, 32, 32, 3]).astype('float32')
-    EPOCHS = 3
+    EPOCHS = 30
     BATCH_SIZE = 256
     TRAINING_EXAMPLES = [5000, 10000, 30000, 50000]
 
