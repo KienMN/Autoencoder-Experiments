@@ -34,7 +34,7 @@ path = os.path.dirname(__file__) + 'lenet_logs'
 if not os.path.exists(path):
   os.mkdir(path)
 
-for d in ['mnist', 'fashion_mnist', 'cifar']:
+for d in ['fashion_mnist']:
   if d == 'mnist':
     (train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.mnist.load_data()
     train_images = train_images.reshape([-1, 28, 28, 1]).astype('float32')
