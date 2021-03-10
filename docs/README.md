@@ -54,6 +54,24 @@ Run the experiments by the command:
 python experiments/{autoencoder_folder}/{autoencoder_experiment}.py -d {dataset_name}
 ```
 
+## Citation
+This source code is for the paper:
+
+Mai Ngoc K., Hwang M. (2020) Finding the Best k for the Dimension of the Latent Space in Autoencoders. In: Nguyen N.T., Hoang B.H., Huynh C.P., Hwang D., Trawiński B., Vossen G. (eds) Computational Collective Intelligence. ICCCI 2020. Lecture Notes in Computer Science, vol 12496. Springer, Cham. https://doi.org/10.1007/978-3-030-63007-2_35
+
+```
+@inproceedings{10.1007/978-3-030-63007-2_35,
+author="Mai Ngoc, Kien and Hwang, Myunggwon",
+title="Finding the Best k for the Dimension of the Latent Space in Autoencoders",
+booktitle="Computational Collective Intelligence",
+year="2020",
+publisher="Springer International Publishing",
+address="Cham",
+pages="453--464",
+isbn="978-3-030-63007-2"
+}
+```
+
 ## Reference
 1. From Autoencoder to Beta-VAE: https://lilianweng.github.io/lil-log/2018/08/12/from-autoencoder-to-beta-vae.html  
 2. Adversarial autoencoder: https://github.com/Warvito/adversarial-autoencoder  
